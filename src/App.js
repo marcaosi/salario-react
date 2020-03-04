@@ -9,6 +9,7 @@ function App() {
   const [baseIrpf, setBaseIrpf] = useState(0)
   const [salarioLiquido, setSalarioLiquido] = useState(0)
   const [salarioBruto, setSalarioBruto] = useState(0)
+  const [liquidoDesejado, setsetLiquidoDesejado] = useState(0)
 
   const tabelaINSS_2018 = [
     {
@@ -59,6 +60,36 @@ function App() {
 
   const TETO_INSS_2018 = 621.04
 
+  const calcDescontoINSS = (salario) => {
+    let _descontoInss = 0
+    for(let faixa of tabelaINSS_2018){
+      if (salario <= faixa.ate) {
+        _descontoInss = Math.min(salario * (faixa.aliquota / 100), TETO_INSS_2018)
+        return _descontoInss
+        break;
+      }
+    }
+  }
+
+  const calcDescontoIRPF = (salario) => {
+    let _descontoIRPF = 0
+    for (let faixa of tabelaIRPF_2018) {
+      if (salario <= faixa.ate) {
+        _descontoIRPF = salario * (faixa.aliquota / 100)
+        _descontoIRPF -= faixa.deducao
+        return _descontoIRPF
+        break;
+      }
+    }
+  }
+
+  const calcSalarioLiquido = (salario, descontoInss, descontoIrpf) => {
+    salario -= descontoInss
+    salario -= descontoIrpf
+
+    return salario
+  }
+
   const mudaSalarioBruto = (value) => {
     if(value === ""){
       value = 0
@@ -69,35 +100,58 @@ function App() {
     console.log(regexSalario.test(value))
     setSalarioBruto(parseFloat(value))
     setBaseInss(value)
-    let _descontoInss = 0
 
-    for(let faixa of tabelaINSS_2018){
-      if (value <= faixa.ate) {
-        _descontoInss = Math.min(value * (faixa.aliquota / 100), TETO_INSS_2018)
-        setDescontoInss(_descontoInss)
-        break;
-      }
-    }
+    let _descontoInss = calcDescontoINSS(value)
+
+    setDescontoInss(_descontoInss)
 
     setBaseIrpf(value - _descontoInss)
 
-    let _descontoIRPF = 0
+    let _descontoIRPF = calcDescontoIRPF(value - _descontoInss)
 
-    for (let faixa of tabelaIRPF_2018) {
-      if (value <= faixa.ate) {
-        _descontoIRPF = value * (faixa.aliquota / 100)
-        _descontoIRPF -= faixa.deducao
-        setDescontoIrpf(_descontoIRPF)
-        break;
-      }
-    }
+    setDescontoIrpf(_descontoIRPF)
 
-    let _salarioLiquido = value
-    _salarioLiquido -= _descontoInss
-    _salarioLiquido -= _descontoIRPF
+    let _salarioLiquido = calcSalarioLiquido(value, _descontoInss, _descontoIRPF)
+    
 
     setSalarioLiquido(_salarioLiquido)
 
+    console.log("teste")
+
+  }
+
+  const calcLiquido = (salario) => {
+    let _descontoInss = calcDescontoINSS(salario)
+    
+    let baseIrpf = salario - _descontoInss
+
+    let _descontoIRPF = calcDescontoIRPF(baseIrpf)
+
+    return baseIrpf - _descontoIRPF
+  }
+
+  const calcSalarioDesejado = (evt) => {
+    evt.preventDefault()
+    let salarioLiquidoDesejado = 0
+    let salarioBrutoDesejado = salarioBruto
+
+    // console.log(salarioBrutoDesejado)
+
+    while(salarioLiquidoDesejado < liquidoDesejado){
+    //   console.log(salarioLiquidoDesejado)
+      salarioLiquidoDesejado = calcLiquido(salarioBrutoDesejado)
+      salarioBrutoDesejado++
+      // salarioBrutoDesejado++
+      // salarioLiquidoDesejado = calcLiquido(salarioBrutoDesejado)
+      // salarioBrutoDesejado++
+      // salarioLiquidoDesejado = calcLiquido(salarioBrutoDesejado)
+      // salarioBrutoDesejado++
+      // salarioLiquidoDesejado = calcLiquido(salarioBrutoDesejado)
+      console.log(salarioBrutoDesejado)
+      console.log(salarioLiquidoDesejado)
+    }
+
+    mudaSalarioBruto(salarioBrutoDesejado)
   }
   
   return (
@@ -140,10 +194,15 @@ function App() {
           <form>
             <div className="form-group">
               <label>Salário líquido desejado</label>
-              <input type="number" className="form-control" />
+              <input type="number" className="form-control" onChange={(evt) => {
+                const regex = /^[0-9]{1,}\.{0,}[0-9]{0,2}$/
+                if(regex.test(evt.target.value) || evt.target.value == ""){
+                  setsetLiquidoDesejado(evt.target.value)
+                }
+              }} value={liquidoDesejado} />
             </div>
             <div className="form-group">
-              <button type="submit" className="btn btn-primary">Calcular salário bruto correspondente</button>
+              <button type="submit" className="btn btn-primary" onClick={calcSalarioDesejado}>Calcular salário bruto correspondente</button>
             </div>
           </form>
         </div>
